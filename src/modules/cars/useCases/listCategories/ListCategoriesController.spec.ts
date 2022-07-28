@@ -1,16 +1,16 @@
 import { hash } from "bcrypt";
 import request from "supertest";
-import { Connection } from "typeorm";
+import { DataSource } from "typeorm";
 import { v4 as uuidv4 } from "uuid";
 
 import { app } from "../../../../shared/infra/http/app";
-import createConnection from "../../../../shared/infra/typeorm";
+import { createConnection } from "../../../../shared/infra/typeorm";
 
-let connection: Connection;
+let connection: DataSource;
 
 describe("Create Category Controller", () => {
   beforeAll(async () => {
-    connection = await createConnection();
+    connection = await createConnection("localhost");
     await connection.runMigrations();
 
     const password = await hash("admin", 8);
@@ -24,7 +24,7 @@ describe("Create Category Controller", () => {
 
   afterAll(async () => {
     await connection.dropDatabase();
-    await connection.close();
+    await connection.destroy();
   });
 
   it("should be able to list all Categories", async () => {
@@ -33,7 +33,7 @@ describe("Create Category Controller", () => {
       password: "admin",
     });
 
-    const { token } = responseToken.body;
+    const { refresh_token } = responseToken.body;
 
     await request(app)
       .post("/categories")
@@ -42,7 +42,7 @@ describe("Create Category Controller", () => {
         description: "Category supertest",
       })
       .set({
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${refresh_token}`,
       });
 
     const response = await request(app).get("/categories");
